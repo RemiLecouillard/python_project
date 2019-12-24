@@ -225,3 +225,49 @@ class GoalBasedBrain( TortoiseBrain ):
 		
 		
 		return self.get_best_action()
+
+	def uc_search( self, initial_state ):
+		""" Uniform-Cost Search.
+
+		It returns the path as a list of directions among
+		{ Direction.left, Direction.right, Direction.up, Direction.down }
+		"""
+
+		# use a priority queue with the minimum queue.
+		from utils import PriorityQueue
+		open_list = PriorityQueue()
+		open_list.push([(initial_state, None)], 0)
+		closed_list = set([initial_state]) # keep already explored positions
+
+		while not open_list.isEmpty():
+		# Get the path at the top of the queue
+			current_path, cost = open_list.pop()
+			# Get the last place of that path
+			current_state, current_direction = current_path[-1]
+			# Check if we have reached the goal
+			if current_state.is_goal_state():
+				return (list (map(lambda x : x[1], current_path[1:])))
+			else:
+				# Check were we can go from here
+				next_steps = current_state.get_successor_states()
+				# Add the new paths (one step longer) to the queue
+				for state, direction, weight in next_steps:
+					# Avoid loop!
+					if state not in closed_list:
+						closed_list.add(state)
+						open_list.push((current_path + [ (state, direction) ]), cost + weight)
+		return []
+
+class UCS_state :
+	_map = []
+	_position
+
+	def init(self, map, position) :
+		_map = map
+		_position = position
+
+	def get_successor_states(self) :
+		pass
+
+	def is_goal_state(self) :
+		pass
