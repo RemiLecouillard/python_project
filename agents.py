@@ -168,7 +168,7 @@ class GoalBasedBrain( TortoiseBrain ):
 		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.WATER:
 			return DRINK
 		
-		return path.pop()[1]
+		return path.pop()
 
 	def perform_meta_action_explore(self ) :
 		pass
