@@ -105,6 +105,7 @@ class State:
 	_position = (1,1)
 	_position_dog = (0,0)
 	_direction = 0
+	_isThirty = False
 		
  #  ______                               _              
  # |  ____|                             (_)             
@@ -179,10 +180,13 @@ class GoalBasedBrain( TortoiseBrain ):
 
 		print("water cost ", self.get_water_cost(path), " thirst ", self._state._thirst)
 
+		if self.get_water_cost(path) > self._state._thirst - 10:
+			self._state._isThirty = True
+
 		if len(path_to_lettuce) != 0:
 			print("meta action eat")
 			return self.perform_meta_action_eat(path_to_lettuce)
-		elif self.get_water_cost(path) > self._state._thirst - 10:
+		elif self._state._isThirty:
 			print("meta action drink")
 			return self.perform_meta_action_drink(path)
 		else :
@@ -191,6 +195,7 @@ class GoalBasedBrain( TortoiseBrain ):
 
 	def perform_meta_action_drink(self, path):
 		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.WATER:
+			self._state._isThirty = False
 			return DRINK
 		
 		return path[0]
