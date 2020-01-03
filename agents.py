@@ -149,8 +149,7 @@ class GoalBasedBrain( TortoiseBrain ):
 			self._state._map[self._state._position[0] - 1][self._state._position[1]] = self.get_type_of_ahead_square(sensor)
 
 	def get_best_action(self):
-		state = UCS_state()
-		state.init(self._state._position, self._state._map, self._state._map_size)
+		state = UCS_state(self._state._position, self._state._map, self._state._map_size)
 		path = self.uc_search(state)
 
 		if self.get_water_cost(self._state._position, path[-1]) < self._state._thirst :
@@ -326,7 +325,7 @@ class UCS_state :
 	_position = (0,0)
 	_size = 0
 
-	def init(self, map, position, size) :
+	def __init__(self, map, position, size) :
 		_map = map
 		_position = position
 		_size = size
@@ -335,8 +334,9 @@ class UCS_state :
 		list = []
 		for i in range(0, 4) :
 			next_to = self._position + DIRECTIONTABLE[i]
+			succ_state = UCS_state(self._map, next_to, self._size)
 			if next_to[0] > 0 and next_to[0] < self._size and  next_to[1] > 0 and next_to[1] < self._size :
-				list.append()
+				list.append(succ_state)
 		return list
 
 	def is_goal_state(self) :
