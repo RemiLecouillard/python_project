@@ -156,13 +156,13 @@ class GoalBasedBrain( TortoiseBrain ):
 			self._state._map[self._state._position[0] - 1][self._state._position[1]] = self.get_type_of_ahead_square(sensor)
 
 	def get_best_action(self):
-		state = UCS_state(self._state._map, self._state._position, self._state._direction, self._state._map_size)
+		state = UCS_Drink_State(self._state._map, self._state._position, self._state._direction, self._state._map_size)
 		path = self.uc_search(state)
 
-		if self.get_water_cost(self._state._position, path[-1]) < self._state._thirst :
-			return self.perform_meta_action_explore()
-		else :
+		if self.get_water_cost(path) > self._state._thirst - 5 :
 			return self.perform_meta_action_drink(path)
+		else :
+			return self.perform_meta_action_explore()
 
 	def perform_meta_action_drink(self, path):
 		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.WATER:
@@ -171,67 +171,24 @@ class GoalBasedBrain( TortoiseBrain ):
 		return path.pop()
 
 	def perform_meta_action_explore(self ) :
-		pass
+		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.LETTUCE:
+			return EAT
 
+		state = UCS_Explore_State(self._state._map, self._state._position, self._state._direction, self._state._map_size)
+		path = self.uc_search(state)
+		
+		return path.pop()
 		
 
-	# 0 (north), 1 (east), 2 (south), and 3 (west).
-	def get_water_cost(self, depart, arrive):
+	def get_water_cost(self, path) :
 		cost = 0
-		# même colonne?
-		if math.fabs(depart[1]-arrive[1]) == 0:
-			# aligné en dessous
-			if math.fabs(depart[0]-arrive[0]) > 0:
-				if self._state._direction == 0:
-					cost += 0
-				if self._state._direction == 2:
-					cost += 2
-				if (self._state._direction == 1) or (self._state._direction == 3):
-					cost += 1
-			# aligné au dessus
-			if math.fabs(depart[0]-arrive[0]) < 0:
-				if self._state._direction == 0:
-					cost += 2
-				if self._state._direction == 2:
-					cost += 0
-				if (self._state._direction == 1) or (self._state._direction == 3):
-					cost += 1
-			# même case
-			if math.fabs(depart[0]-arrive[0]) == 0:
-				return cost
-			cost += math.fabs(depart[0]-arrive[0])
-			return cost
-		# même ligne?
-		elif math.fabs(depart[0]-arrive[0]) == 0:
-			# à droite
-			if math.fabs(depart[1]-arrive[1]) > 0:
-				if self._state._direction == 1:
-					cost += 2
-				if self._state._direction == 3:
-					cost += 0
-				if (self._state._direction == 0) or (self._state._direction == 2):
-					cost += 1
-			# à gauche
-			if math.fabs(depart[1]-arrive[1]) < 0:
-				if self._state._direction == 1:
-					cost += 0
-				if self._state._direction == 3:
-					cost += 2
-				if (self._state._direction == 0) or (self._state._direction == 2):
-					cost += 1
-			# même case
-			if math.fabs(depart[1]-arrive[1]) == 0:
-				return cost
-			cost += math.fabs(depart[1]-arrive[1])
-			return cost
+		for step in path :
+			if step == FORWARD:
+				cost += 2
+			if step == LEFT or step == RIGHT:
+				cost += 1
+		return cost
 
-		# pas sur la même ligne/colonne
-		else:
-			cost += math.fabs(depart[1]-arrive[1])
-			cost += math.fabs(depart[0]-arrive[0])
-			cost += 5
-			return cost
-		
 	def think( self, sensor ):
 		"""
 		Returns the best action with regard to the current state of the game.
@@ -303,7 +260,7 @@ class GoalBasedBrain( TortoiseBrain ):
 						open_list.push((current_path + [ (state, direction) ]), cost + weight)
 		return []
 
-class UCS_state :
+class UCS_State :
 	_map = []
 	_position = (0,0)
 	_size = 0
@@ -326,18 +283,23 @@ class UCS_state :
 		next_to = self._position + DIRECTIONTABLE[self._direction]
 
 		if (self.canGoTo(next_to)) :
-			succ_state = UCS_state(self._map, next_to, self._direction, self._size)
+			succ_state = UCS_State(self._map, next_to, self._direction, self._size)
 			succ_list.append((succ_state, FORWARD, 1))
 
 		new_direction = (self._direction + 1) % 4
-		succ_state = UCS_state(self._map, self._position, new_direction, self._size)
+		succ_state = UCS_State(self._map, self._position, new_direction, self._size)
 		succ_list.append((succ_state, RIGHT, 1))
 
 		new_direction = (self._direction - 1) % 4
-		succ_state = UCS_state(self._map, self._position, new_direction, self._size)
+		succ_state = UCS_State(self._map, self._position, new_direction, self._size)
 		succ_list.append((succ_state, LEFT, 1))
 
 		return succ_list
 
+class UCS_Drink_State(UCS_State) :
 	def is_goal_state(self) :
 		return self._map[self._position[0]][self._position[1]] == Square_type.WATER
+
+class UCS_Explore_State(UCS_State) :
+	def is_goal_state(self) :
+		return self._map[self._position[0]][self._position[1]] == Square_type.UNKNOWN
