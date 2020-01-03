@@ -348,7 +348,7 @@ class UCS_state :
 
 		if (self.canGoTo(next_to)) :
 			succ_state = UCS_state(self._map, next_to, self._direction, self._size)
-			succ_list.append((succ_state, FORWARD, 1)
+			succ_list.append((succ_state, FORWARD, 1))
 
 		new_direction = (self._direction + 1) % 4
 		succ_state = UCS_state(self._map, self._position, new_direction, self._size)
