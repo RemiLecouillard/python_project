@@ -28,6 +28,11 @@ LEFT = 'left'
 RIGHT = 'right'
 WAIT = 'wait'
 
+NORTH = 0
+EAST = 1
+SOUTH = 2
+WEST = 3
+
 DIRECTIONTABLE = [(0, -1), (1, 0), (0, 1), (-1, 0)] # North, East, South, West
 
 class TortoiseBrain:
@@ -149,7 +154,7 @@ class GoalBasedBrain( TortoiseBrain ):
 			self._state._map[self._state._position[0] - 1][self._state._position[1]] = self.get_type_of_ahead_square(sensor)
 
 	def get_best_action(self):
-		state = UCS_state(self._state._position, self._state._map, self._state._map_size)
+		state = UCS_state(self._state._map, self._state._position, self._state._direction, self._state._map_size)
 		path = self.uc_search(state)
 
 		if self.get_water_cost(self._state._position, path[-1]) < self._state._thirst :
@@ -158,14 +163,10 @@ class GoalBasedBrain( TortoiseBrain ):
 			return self.perform_meta_action_drink(path)
 
 	def perform_meta_action_drink(self, path):
-		next_position = path[0]
-		
-		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.WATER :
+		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.WATER:
 			return DRINK
-		elif DIRECTIONTABLE[self._state._direction] + self._state._position == next_position :
-			return FORWARD
-		else :
-			return RIGHT
+		
+		return path.pop()[1]
 
 	def perform_meta_action_explore(self ) :
 		pass
@@ -324,25 +325,38 @@ class UCS_state :
 	_map = []
 	_position = (0,0)
 	_size = 0
+	_direction = 0
 
+    #0 (north), 1 (east), 2 (south), and 3 (west).
 	def canGoTo(self, next_to) :
 		if next_to[0] > 0 and next_to[0] < self._size and next_to[1] > 0 and next_to[1] < self._size 
 		and self._map[next_to[0]][next_to[1]] != Square_type.WALL and self._map[next_to[0]][next_to[1]] != Square_type.UNKNOWN:
 			return True
 		return False
 
-	def __init__(self, map, position, size) :
+	def __init__(self, map, position, direction, size) :
 		_map = map
 		_position = position
 		_size = size
+		_direction = direction
 
 	def get_successor_states(self) :
 		list = []
-		for i in range(0, 4) :
-			next_to = self._position + DIRECTIONTABLE[i]
-			succ_state = UCS_state(self._map, next_to, self._size)
-			if self.canGoTo(next_to):
-				list.append(succ_state)
+
+		next_to = self._position + DIRECTIONTABLE[self._direction]
+
+		if (self.canGoTo(next_to)) :
+			succ_state = UCS_state(self._map, next_to, self._direction, self._size)
+			list.append((succ_state, FORWARD, 1)
+
+		new_direction = (self._direction + 1) % 4
+		succ_state = UCS_state(self._map, self._position, new_direction, self._size)
+		list.append((succ_state, RIGHT, 1))
+
+		new_direction = (self._direction - 1) % 4
+		succ_state = UCS_state(self._map, self._position, new_direction, self._size)
+		list.append((succ_state, LEFT, 1))
+
 		return list
 
 	def is_goal_state(self) :
