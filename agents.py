@@ -12,6 +12,7 @@
 # @author Régis Clouard
 
 import random
+import operator
 import copy
 import math
 import utils
@@ -34,6 +35,11 @@ SOUTH = 2
 WEST = 3
 
 DIRECTIONTABLE = [(0, -1), (1, 0), (0, 1), (-1, 0)] # North, East, South, West
+
+def add_position(a, b) :
+	x = a[0] + b[0]
+	y = a[1] + b[1]
+	return (x, y)
 
 class TortoiseBrain:
 	"""
@@ -132,6 +138,14 @@ class GoalBasedBrain( TortoiseBrain ):
 			else:
 				return Square_type.FREE
 		return Square_type.WALL
+	
+	def get_type_of_my_square(self,sensor):
+		if sensor.lettuce_here == 1:
+			return Square_type.LETTUCE
+		if sensor.water_here == 1:
+			return Square_type.WATER
+		else:
+			return Square_type.FREE
 
 	def get_position_of_dog(self, sensor):
 		if sensor.tortoise_direction == 0:
@@ -146,6 +160,7 @@ class GoalBasedBrain( TortoiseBrain ):
 		self._state._position_dog = self.get_position_of_dog(sensor)
 		self._state._direction = sensor.tortoise_direction
 
+		self._state._map[self._state._position[0]][self._state._position[1]] = self.get_type_of_my_square(sensor)
 		if sensor.tortoise_direction == 0:
 			self._state._map[self._state._position[0]][self._state._position[1]-1] = self.get_type_of_ahead_square(sensor)
 		if sensor.tortoise_direction == 1:
@@ -159,16 +174,32 @@ class GoalBasedBrain( TortoiseBrain ):
 		state = UCS_Drink_State(self._state._map, self._state._position, self._state._direction, self._state._map_size)
 		path = self.uc_search(state)
 
-		if self.get_water_cost(path) > self._state._thirst - 5 :
+		state_eat = UCS_Eat_State(self._state._map, self._state._position, self._state._direction, self._state._map_size)
+		path_to_lettuce = self.uc_search(state_eat)
+
+		print("water cost ", self.get_water_cost(path), " thirst ", self._state._thirst)
+
+		if len(path_to_lettuce) != 0:
+			print("meta action eat")
+			return self.perform_meta_action_eat(path_to_lettuce)
+		elif self.get_water_cost(path) > self._state._thirst - 10:
+			print("meta action drink")
 			return self.perform_meta_action_drink(path)
 		else :
+			print("meta action explore")
 			return self.perform_meta_action_explore()
 
 	def perform_meta_action_drink(self, path):
 		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.WATER:
 			return DRINK
 		
-		return path.pop()
+		return path[0]
+
+	def perform_meta_action_eat(self, path):
+		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.LETTUCE:
+			return EAT
+		
+		return path[0]
 
 	def perform_meta_action_explore(self ) :
 		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.LETTUCE:
@@ -176,8 +207,8 @@ class GoalBasedBrain( TortoiseBrain ):
 
 		state = UCS_Explore_State(self._state._map, self._state._position, self._state._direction, self._state._map_size)
 		path = self.uc_search(state)
-		
-		return path.pop()
+
+		return path[0]
 		
 
 	def get_water_cost(self, path) :
@@ -223,10 +254,10 @@ class GoalBasedBrain( TortoiseBrain ):
 
 		# *** YOUR CODE HERE ***"
 		self.update_state(sensor)
-		print(self._state._map)
-		
-		
-		return self.get_best_action()
+		#print(self._state._map)
+		action = self.get_best_action()
+		print("action -> ", action)
+		return action
 
 	def uc_search( self, initial_state ):
 		""" Uniform-Cost Search.
@@ -240,12 +271,14 @@ class GoalBasedBrain( TortoiseBrain ):
 		open_list = PriorityQueue()
 		open_list.push([(initial_state, None)], 0)
 		closed_list = set([initial_state]) # keep already explored positions
-
+        
 		while not open_list.isEmpty():
 		# Get the path at the top of the queue
 			current_path, cost = open_list.pop()
 			# Get the last place of that path
 			current_state, current_direction = current_path[-1]
+			#print("current_state -> ", current_state._position, " direction -> ", current_state._direction, " cost -> ", cost)
+
 			# Check if we have reached the goal
 			if current_state.is_goal_state():
 				return (list (map(lambda x : x[1], current_path[1:])))
@@ -266,40 +299,98 @@ class UCS_State :
 	_size = 0
 	_direction = 0
 
+	def __hash__(self) :
+		return hash((self._position,self._direction))
+
+	def __eq__(self, other) :
+		if self._position == other._position and self._direction == other._direction :
+			return True
+		return False
+
 	def canGoTo(self, next_to) :
 		if next_to[0] > 0 and next_to[0] < self._size and next_to[1] > 0 and next_to[1] < self._size and self._map[next_to[0]][next_to[1]] != Square_type.WALL and self._map[next_to[0]][next_to[1]] != Square_type.UNKNOWN:
 			return True
 		return False
 
 	def __init__(self, map, position, direction, size) :
-		_map = map
-		_position = position
-		_size = size
-		_direction = direction
+		self._map = copy.deepcopy(map)
+		self._position = position
+		self._size = size
+		self._direction = direction
+
+class UCS_Drink_State(UCS_State) :
 
 	def get_successor_states(self) :
 		succ_list = []
 
-		next_to = self._position + DIRECTIONTABLE[self._direction]
+		next_to = add_position(self._position,  DIRECTIONTABLE[self._direction])
 
 		if (self.canGoTo(next_to)) :
-			succ_state = UCS_State(self._map, next_to, self._direction, self._size)
+			succ_state = UCS_Drink_State(self._map, next_to, self._direction, self._size)
 			succ_list.append((succ_state, FORWARD, 1))
 
 		new_direction = (self._direction + 1) % 4
-		succ_state = UCS_State(self._map, self._position, new_direction, self._size)
+		succ_state = UCS_Drink_State(self._map, self._position, new_direction, self._size)
 		succ_list.append((succ_state, RIGHT, 1))
 
 		new_direction = (self._direction - 1) % 4
-		succ_state = UCS_State(self._map, self._position, new_direction, self._size)
+		succ_state = UCS_Drink_State(self._map, self._position, new_direction, self._size)
 		succ_list.append((succ_state, LEFT, 1))
 
 		return succ_list
-
-class UCS_Drink_State(UCS_State) :
+		
 	def is_goal_state(self) :
 		return self._map[self._position[0]][self._position[1]] == Square_type.WATER
 
 class UCS_Explore_State(UCS_State) :
+
+	def canGoTo(self, next_to) :
+		if next_to[0] > 0 and next_to[0] < self._size and next_to[1] > 0 and next_to[1] < self._size and self._map[next_to[0]][next_to[1]] != Square_type.WALL:
+			return True
+		return False
+
+	def get_successor_states(self) :
+		succ_list = []
+
+		next_to = add_position(self._position,  DIRECTIONTABLE[self._direction])
+
+		if (self.canGoTo(next_to)) :
+			succ_state = UCS_Explore_State(self._map, next_to, self._direction, self._size)
+			succ_list.append((succ_state, FORWARD, 1))
+
+		new_direction = (self._direction + 1) % 4
+		succ_state = UCS_Explore_State(self._map, self._position, new_direction, self._size)
+		succ_list.append((succ_state, RIGHT, 1))
+
+		new_direction = (self._direction - 1) % 4
+		succ_state = UCS_Explore_State(self._map, self._position, new_direction, self._size)
+		succ_list.append((succ_state, LEFT, 1))
+
+		return succ_list
+
 	def is_goal_state(self) :
 		return self._map[self._position[0]][self._position[1]] == Square_type.UNKNOWN
+
+class UCS_Eat_State(UCS_State) :
+
+	def get_successor_states(self) :
+		succ_list = []
+
+		next_to = add_position(self._position,  DIRECTIONTABLE[self._direction])
+
+		if (self.canGoTo(next_to)) :
+			succ_state = UCS_Eat_State(self._map, next_to, self._direction, self._size)
+			succ_list.append((succ_state, FORWARD, 1))
+
+		new_direction = (self._direction + 1) % 4
+		succ_state = UCS_Eat_State(self._map, self._position, new_direction, self._size)
+		succ_list.append((succ_state, RIGHT, 1))
+
+		new_direction = (self._direction - 1) % 4
+		succ_state = UCS_Eat_State(self._map, self._position, new_direction, self._size)
+		succ_list.append((succ_state, LEFT, 1))
+
+		return succ_list
+		
+	def is_goal_state(self) :
+		return self._map[self._position[0]][self._position[1]] == Square_type.LETTUCE
