@@ -28,6 +28,11 @@ LEFT = 'left'
 RIGHT = 'right'
 WAIT = 'wait'
 
+NORTH = 0
+EAST = 1
+SOUTH = 2
+WEST = 3
+
 DIRECTIONTABLE = [(0, -1), (1, 0), (0, 1), (-1, 0)] # North, East, South, West
 
 class TortoiseBrain:
@@ -88,11 +93,12 @@ class Square_type(Enum):
 
 class State:
 	_map = []
+	_map_size = 0
 	_life = 100
 	_thirst = 100
 	_position = (1,1)
 	_position_dog = (0,0)
-
+	_direction = 0
 		
  #  ______                               _              
  # |  ____|                             (_)             
@@ -108,6 +114,7 @@ class GoalBasedBrain( TortoiseBrain ):
 		self.init_map(grid_size)
 		
 	def init_map(self, grid_size):
+		self._state._map_size = grid_size
 		for i in range(grid_size):
 			self._state._map += [[]]
 			for j in range(grid_size):
@@ -118,11 +125,13 @@ class GoalBasedBrain( TortoiseBrain ):
 
 	def get_type_of_ahead_square(self, sensor):
 		if sensor.free_ahead == 1:
-			return Square_type.FREE
-		if sensor.lettuce_ahead == 1:
-			return Square_type.LETTUCE
-		if sensor.water_ahead == 1:
-			return Square_type.WALL
+			if sensor.lettuce_ahead == 1:
+				return Square_type.LETTUCE
+			if sensor.water_ahead == 1:
+				return Square_type.WATER
+			else:
+				return Square_type.FREE
+		return Square_type.WALL
 
 	def get_position_of_dog(self, sensor):
 		if sensor.tortoise_direction == 0:
@@ -135,6 +144,7 @@ class GoalBasedBrain( TortoiseBrain ):
 		self._state._thirst = sensor.drink_level
 		self._state._position = sensor.tortoise_position
 		self._state._position_dog = self.get_position_of_dog(sensor)
+		self._state._direction = sensor.tortoise_direction
 
 		if sensor.tortoise_direction == 0:
 			self._state._map[self._state._position[0]][self._state._position[1]-1] = self.get_type_of_ahead_square(sensor)
@@ -146,46 +156,81 @@ class GoalBasedBrain( TortoiseBrain ):
 			self._state._map[self._state._position[0] - 1][self._state._position[1]] = self.get_type_of_ahead_square(sensor)
 
 	def get_best_action(self):
-		pass
+		state = UCS_state(self._state._map, self._state._position, self._state._direction, self._state._map_size)
+		path = self.uc_search(state)
 
-	def get_water_cost(self, depart, arrive, sensor):
-		cost = 0
-		if math.abs(depart[0]-arrive[0]) == 0:
-			if math.abs(depart[1]-arrive[1]) > 0:
-				if sensor.tortoise_direction == 0:
-					cost += 0
-				if sensor.tortoise_direction == 2:
-					cost += 2
-				if (sensor.tortoise_direction == 1) or (sensor.tortoise_direction == 3):
-					cost += 1
-			if math.abs(depart[1]-arrive[1]) < 0:
-				if sensor.tortoise_direction == 0:
-					cost += 2
-				if sensor.tortoise_direction == 2:
-					cost += 0
-				if (sensor.tortoise_direction == 1) or (sensor.tortoise_direction == 3):
-					cost += 1
-			
+		if self.get_water_cost(self._state._position, path[-1]) < self._state._thirst :
+			return self.perform_meta_action_explore()
+		else :
+			return self.perform_meta_action_drink(path)
 
-	def get_require_water(self, action):
-		pass
-	
-	def have_enough_water(self, action):
-		if action==LEFT or action==RIGHT or action==EAT:
-			if assez_eau:
-				return True
-			else:
-				return False
-
-		if action==FORWARD:
-			if assez_eau:
-				return True
-			else:
-				return False
-
-		if action==DRINK or action==WAIT:
-			return True
+	def perform_meta_action_drink(self, path):
+		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.WATER:
+			return DRINK
 		
+		return path.pop()
+
+	def perform_meta_action_explore(self ) :
+		pass
+
+		
+
+	# 0 (north), 1 (east), 2 (south), and 3 (west).
+	def get_water_cost(self, depart, arrive):
+		cost = 0
+		# même colonne?
+		if math.fabs(depart[1]-arrive[1]) == 0:
+			# aligné en dessous
+			if math.fabs(depart[0]-arrive[0]) > 0:
+				if self._state._direction == 0:
+					cost += 0
+				if self._state._direction == 2:
+					cost += 2
+				if (self._state._direction == 1) or (self._state._direction == 3):
+					cost += 1
+			# aligné au dessus
+			if math.fabs(depart[0]-arrive[0]) < 0:
+				if self._state._direction == 0:
+					cost += 2
+				if self._state._direction == 2:
+					cost += 0
+				if (self._state._direction == 1) or (self._state._direction == 3):
+					cost += 1
+			# même case
+			if math.fabs(depart[0]-arrive[0]) == 0:
+				return cost
+			cost += math.fabs(depart[0]-arrive[0])
+			return cost
+		# même ligne?
+		elif math.fabs(depart[0]-arrive[0]) == 0:
+			# à droite
+			if math.fabs(depart[1]-arrive[1]) > 0:
+				if self._state._direction == 1:
+					cost += 2
+				if self._state._direction == 3:
+					cost += 0
+				if (self._state._direction == 0) or (self._state._direction == 2):
+					cost += 1
+			# à gauche
+			if math.fabs(depart[1]-arrive[1]) < 0:
+				if self._state._direction == 1:
+					cost += 0
+				if self._state._direction == 3:
+					cost += 2
+				if (self._state._direction == 0) or (self._state._direction == 2):
+					cost += 1
+			# même case
+			if math.fabs(depart[1]-arrive[1]) == 0:
+				return cost
+			cost += math.fabs(depart[1]-arrive[1])
+			return cost
+
+		# pas sur la même ligne/colonne
+		else:
+			cost += math.fabs(depart[1]-arrive[1])
+			cost += math.fabs(depart[0]-arrive[0])
+			cost += 5
+			return cost
 		
 	def think( self, sensor ):
 		"""
@@ -225,3 +270,75 @@ class GoalBasedBrain( TortoiseBrain ):
 		
 		
 		return self.get_best_action()
+
+	def uc_search( self, initial_state ):
+		""" Uniform-Cost Search.
+
+		It returns the path as a list of directions among
+		{ Direction.left, Direction.right, Direction.up, Direction.down }
+		"""
+
+		# use a priority queue with the minimum queue.
+		from utils import PriorityQueue
+		open_list = PriorityQueue()
+		open_list.push([(initial_state, None)], 0)
+		closed_list = set([initial_state]) # keep already explored positions
+
+		while not open_list.isEmpty():
+		# Get the path at the top of the queue
+			current_path, cost = open_list.pop()
+			# Get the last place of that path
+			current_state, current_direction = current_path[-1]
+			# Check if we have reached the goal
+			if current_state.is_goal_state():
+				return (list (map(lambda x : x[1], current_path[1:])))
+			else:
+				# Check were we can go from here
+				next_steps = current_state.get_successor_states()
+				# Add the new paths (one step longer) to the queue
+				for state, direction, weight in next_steps:
+					# Avoid loop!
+					if state not in closed_list:
+						closed_list.add(state)
+						open_list.push((current_path + [ (state, direction) ]), cost + weight)
+		return []
+
+class UCS_state :
+	_map = []
+	_position = (0,0)
+	_size = 0
+	_direction = 0
+
+    #0 (north), 1 (east), 2 (south), and 3 (west).
+	def canGoTo(self, next_to) :
+		if next_to[0] > 0 and next_to[0] < self._size and next_to[1] > 0 and next_to[1] < self._size and self._map[next_to[0]][next_to[1]] != Square_type.WALL and self._map[next_to[0]][next_to[1]] != Square_type.UNKNOWN:
+			return True
+		return False
+
+	def __init__(self, map, position, direction, size) :
+		_map = map
+		_position = position
+		_size = size
+		_direction = direction
+
+	def get_successor_states(self) :
+		succ_list = []
+
+		next_to = self._position + DIRECTIONTABLE[self._direction]
+
+		if (self.canGoTo(next_to)) :
+			succ_state = UCS_state(self._map, next_to, self._direction, self._size)
+			succ_list.append((succ_state, FORWARD, 1))
+
+		new_direction = (self._direction + 1) % 4
+		succ_state = UCS_state(self._map, self._position, new_direction, self._size)
+		succ_list.append((succ_state, RIGHT, 1))
+
+		new_direction = (self._direction - 1) % 4
+		succ_state = UCS_state(self._map, self._position, new_direction, self._size)
+		succ_list.append((succ_state, LEFT, 1))
+
+		return succ_list
+
+	def is_goal_state(self) :
+		return self._map[self._position[0]][self._position[1]] == Square_type.WATER
