@@ -231,26 +231,6 @@ class GoalBasedBrain( TortoiseBrain ):
 			cost += math.fabs(depart[0]-arrive[0])
 			cost += 5
 			return cost
-
-	def get_require_water(self, action):
-		pass
-	
-	def have_enough_water(self, action):
-		if action==LEFT or action==RIGHT or action==EAT:
-			if assez_eau:
-				return True
-			else:
-				return False
-
-		if action==FORWARD:
-			if assez_eau:
-				return True
-			else:
-				return False
-
-		if action==DRINK or action==WAIT:
-			return True
-		
 		
 	def think( self, sensor ):
 		"""
