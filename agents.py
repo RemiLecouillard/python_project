@@ -309,7 +309,6 @@ class UCS_state :
 	_size = 0
 	_direction = 0
 
-    #0 (north), 1 (east), 2 (south), and 3 (west).
 	def canGoTo(self, next_to) :
 		if next_to[0] > 0 and next_to[0] < self._size and next_to[1] > 0 and next_to[1] < self._size and self._map[next_to[0]][next_to[1]] != Square_type.WALL and self._map[next_to[0]][next_to[1]] != Square_type.UNKNOWN:
 			return True
