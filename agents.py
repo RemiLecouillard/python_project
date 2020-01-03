@@ -325,6 +325,12 @@ class UCS_state :
 	_position = (0,0)
 	_size = 0
 
+	def canGoTo(self, next_to) :
+		if next_to[0] > 0 and next_to[0] < self._size and next_to[1] > 0 and next_to[1] < self._size 
+		and self._map[next_to[0]][next_to[1]] != Square_type.WALL and self._map[next_to[0]][next_to[1]] != Square_type.UNKNOWN:
+			return True
+		return False
+
 	def __init__(self, map, position, size) :
 		_map = map
 		_position = position
@@ -335,7 +341,7 @@ class UCS_state :
 		for i in range(0, 4) :
 			next_to = self._position + DIRECTIONTABLE[i]
 			succ_state = UCS_state(self._map, next_to, self._size)
-			if next_to[0] > 0 and next_to[0] < self._size and  next_to[1] > 0 and next_to[1] < self._size :
+			if self.canGoTo(next_to):
 				list.append(succ_state)
 		return list
 
