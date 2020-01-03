@@ -125,11 +125,13 @@ class GoalBasedBrain( TortoiseBrain ):
 
 	def get_type_of_ahead_square(self, sensor):
 		if sensor.free_ahead == 1:
-			return Square_type.FREE
-		if sensor.lettuce_ahead == 1:
-			return Square_type.LETTUCE
-		if sensor.water_ahead == 1:
-			return Square_type.WALL
+			if sensor.lettuce_ahead == 1:
+				return Square_type.LETTUCE
+			if sensor.water_ahead == 1:
+				return Square_type.WATER
+			else:
+				return Square_type.FREE
+		return Square_type.WALL
 
 	def get_position_of_dog(self, sensor):
 		if sensor.tortoise_direction == 0:
