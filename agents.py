@@ -342,23 +342,23 @@ class UCS_state :
 		_direction = direction
 
 	def get_successor_states(self) :
-		list = []
+		succ_list = []
 
 		next_to = self._position + DIRECTIONTABLE[self._direction]
 
 		if (self.canGoTo(next_to)) :
 			succ_state = UCS_state(self._map, next_to, self._direction, self._size)
-			list.append((succ_state, FORWARD, 1)
+			succ_list.append((succ_state, FORWARD, 1)
 
 		new_direction = (self._direction + 1) % 4
 		succ_state = UCS_state(self._map, self._position, new_direction, self._size)
-		list.append((succ_state, RIGHT, 1))
+		succ_list.append((succ_state, RIGHT, 1))
 
 		new_direction = (self._direction - 1) % 4
 		succ_state = UCS_state(self._map, self._position, new_direction, self._size)
-		list.append((succ_state, LEFT, 1))
+		succ_list.append((succ_state, LEFT, 1))
 
-		return list
+		return succ_list
 
 	def is_goal_state(self) :
 		return self._map[self._position[0]][self._position[1]] == Square_type.WATER
