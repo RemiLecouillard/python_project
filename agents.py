@@ -16,6 +16,7 @@ import operator
 import copy
 import math
 import utils
+import abc
 import numpy as np
 from enum import Enum
 
@@ -299,10 +300,15 @@ class GoalBasedBrain( TortoiseBrain ):
 		return []
 
 class UCS_State :
+	__metaclass__ = abc.ABCMeta
 	_map = []
 	_position = (0,0)
 	_size = 0
 	_direction = 0
+
+	@abc.abstractmethod
+	def get_instance(self, map, position, direction, size) :
+		return
 
 	def __hash__(self) :
 		return hash((self._position,self._direction))
@@ -323,79 +329,51 @@ class UCS_State :
 		self._size = size
 		self._direction = direction
 
-class UCS_Drink_State(UCS_State) :
-
 	def get_successor_states(self) :
 		succ_list = []
 
 		next_to = add_position(self._position,  DIRECTIONTABLE[self._direction])
 
 		if (self.canGoTo(next_to)) :
-			succ_state = UCS_Drink_State(self._map, next_to, self._direction, self._size)
+			succ_state = self.get_instance(self._map, next_to, self._direction, self._size)
 			succ_list.append((succ_state, FORWARD, 1))
 
 		new_direction = (self._direction + 1) % 4
-		succ_state = UCS_Drink_State(self._map, self._position, new_direction, self._size)
+		succ_state = self.get_instance(self._map, self._position, new_direction, self._size)
 		succ_list.append((succ_state, RIGHT, 1))
 
 		new_direction = (self._direction - 1) % 4
-		succ_state = UCS_Drink_State(self._map, self._position, new_direction, self._size)
+		succ_state = self.get_instance(self._map, self._position, new_direction, self._size)
 		succ_list.append((succ_state, LEFT, 1))
 
 		return succ_list
 		
+
+class UCS_Drink_State(UCS_State) :
+
+	def get_instance(self, map, position, direction, size) :
+		return UCS_Drink_State(map, position, direction, size)
+
 	def is_goal_state(self) :
 		return self._map[self._position[0]][self._position[1]] == Square_type.WATER
 
 class UCS_Explore_State(UCS_State) :
+
+	def get_instance(self, map, position, direction, size) :
+		return UCS_Explore_State(map, position, direction, size)
 
 	def canGoTo(self, next_to) :
 		if next_to[0] > 0 and next_to[0] < self._size and next_to[1] > 0 and next_to[1] < self._size and self._map[next_to[0]][next_to[1]] != Square_type.WALL:
 			return True
 		return False
 
-	def get_successor_states(self) :
-		succ_list = []
-
-		next_to = add_position(self._position,  DIRECTIONTABLE[self._direction])
-
-		if (self.canGoTo(next_to)) :
-			succ_state = UCS_Explore_State(self._map, next_to, self._direction, self._size)
-			succ_list.append((succ_state, FORWARD, 1))
-
-		new_direction = (self._direction + 1) % 4
-		succ_state = UCS_Explore_State(self._map, self._position, new_direction, self._size)
-		succ_list.append((succ_state, RIGHT, 1))
-
-		new_direction = (self._direction - 1) % 4
-		succ_state = UCS_Explore_State(self._map, self._position, new_direction, self._size)
-		succ_list.append((succ_state, LEFT, 1))
-
-		return succ_list
-
 	def is_goal_state(self) :
 		return self._map[self._position[0]][self._position[1]] == Square_type.UNKNOWN
 
 class UCS_Eat_State(UCS_State) :
 
-	def get_successor_states(self) :
-		succ_list = []
-
-		next_to = add_position(self._position,  DIRECTIONTABLE[self._direction])
-
-		if (self.canGoTo(next_to)) :
-			succ_state = UCS_Eat_State(self._map, next_to, self._direction, self._size)
-			succ_list.append((succ_state, FORWARD, 1))
-
-		new_direction = (self._direction + 1) % 4
-		succ_state = UCS_Eat_State(self._map, self._position, new_direction, self._size)
-		succ_list.append((succ_state, RIGHT, 1))
-
-		new_direction = (self._direction - 1) % 4
-		succ_state = UCS_Eat_State(self._map, self._position, new_direction, self._size)
-		succ_list.append((succ_state, LEFT, 1))
-
-		return succ_list
-		
+	def get_instance(self, map, position, direction, size) :
+		return UCS_Eat_State(map, position, direction, size)
+	
 	def is_goal_state(self) :
 		return self._map[self._position[0]][self._position[1]] == Square_type.LETTUCE
