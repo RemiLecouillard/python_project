@@ -184,7 +184,7 @@ class GoalBasedBrain( TortoiseBrain ):
 		if self.get_water_cost(path) > self._state._thirst - 10:
 			self._state._isThirty = True
 
-		if len(path_to_lettuce) != 0:
+		if len(path_to_lettuce) != 0 or self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.LETTUCE:
 			print("meta action eat")
 			return self.perform_meta_action_eat(path_to_lettuce)
 		elif self._state._isThirty:
