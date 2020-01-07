@@ -122,6 +122,7 @@ class GoalBasedBrain( TortoiseBrain ):
 		
 	def init_map(self, grid_size):
 		self._state._map_size = grid_size
+		self._state._map = []
 		for i in range(grid_size):
 			self._state._map += [[]]
 			for j in range(grid_size):
@@ -204,12 +205,11 @@ class GoalBasedBrain( TortoiseBrain ):
 	def perform_meta_action_explore(self ) :
 		if self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.LETTUCE:
 			return EAT
-
+		import time
 		state = UCS_Explore_State(self._state._map, self._state._position, self._state._direction, self._state._map_size)
 		path = self.uc_search(state)
 
 		return path[0]
-		
 
 	def get_water_cost(self, path) :
 		cost = 0
