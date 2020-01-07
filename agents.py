@@ -178,19 +178,14 @@ class GoalBasedBrain( TortoiseBrain ):
 		state_eat = UCS_Eat_State(self._state._map, self._state._position, self._state._direction, self._state._map_size)
 		path_to_lettuce = self.uc_search(state_eat)
 
-		print("water cost ", self.get_water_cost(path), " thirst ", self._state._thirst)
-
 		if self.get_water_cost(path) > self._state._thirst - 10:
 			self._state._isThirty = True
 
 		if len(path_to_lettuce) != 0 or self._state._map[self._state._position[0]][self._state._position[1]] == Square_type.LETTUCE:
-			print("meta action eat")
 			return self.perform_meta_action_eat(path_to_lettuce)
 		elif self._state._isThirty:
-			print("meta action drink")
 			return self.perform_meta_action_drink(path)
 		else :
-			print("meta action explore")
 			return self.perform_meta_action_explore()
 
 	def perform_meta_action_drink(self, path):
@@ -259,9 +254,7 @@ class GoalBasedBrain( TortoiseBrain ):
 
 		# *** YOUR CODE HERE ***"
 		self.update_state(sensor)
-		#print(self._state._map)
 		action = self.get_best_action()
-		print("action -> ", action)
 		return action
 
 	def uc_search( self, initial_state ):
